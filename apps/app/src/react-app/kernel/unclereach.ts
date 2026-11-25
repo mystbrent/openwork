@@ -1,5 +1,8 @@
 import type { AutomationDesktopRunnerRegistration } from "@openwork/types/automations";
 
+import { desktopFetchViaMain } from "@/app/lib/desktop";
+import { isDesktopRuntime } from "@/app/lib/runtime-env";
+
 export const DEFAULT_UNCLEREACH_BASE_URL = "https://app.unclereach.com/api/openwork";
 export const uncleReachConfigChangedEvent = "openwork-unclereach-config-changed";
 
@@ -27,10 +30,14 @@ export function normalizeUncleReachBaseUrl(value: string): string | null {
   return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
 }
 
+function fetchBypassingRendererCors(input: string, init: RequestInit): Promise<Response> {
+  return isDesktopRuntime() ? desktopFetchViaMain(input, init) : globalThis.fetch(input, init);
+}
+
 async function postToken(baseUrl: string, body: unknown, bearer?: string) {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (bearer) headers.authorization = `Bearer ${bearer}`;
-  const response = await fetch(`${baseUrl}/v1/session-runners/token`, { method: "POST", headers, body: JSON.stringify(body) });
+  const response = await fetchBypassingRendererCors(`${baseUrl}/v1/session-runners/token`, { method: "POST", headers, body: JSON.stringify(body) });
   const json: unknown = await response.json().catch(() => null);
   const record = json instanceof Object ? json : {};
   if (!response.ok) {
