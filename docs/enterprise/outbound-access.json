@@ -91,6 +91,15 @@
       "override": "desktop base URL (self-hosted Den replaces this host)"
     },
     {
+      "host": "app.unclereach.com",
+      "kind": "fetched",
+      "components": ["renderer"],
+      "purpose": "UncleReach runner pairing and token refresh for the fork's automation runner.",
+      "requirement": "opt-in",
+      "blockedEffect": "The desktop cannot pair with UncleReach or receive UncleReach send jobs.",
+      "override": "base URL field in Settings > UncleReach"
+    },
+    {
       "host": "cdn.simpleicons.org",
       "kind": "fetched",
       "components": ["renderer"],

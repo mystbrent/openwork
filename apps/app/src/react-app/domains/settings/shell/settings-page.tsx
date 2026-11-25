@@ -11,6 +11,7 @@ import {
   Gauge,
   HardDriveDownload,
   Keyboard,
+  Link2,
   Monitor,
   Paintbrush,
   Puzzle,
@@ -100,6 +101,8 @@ export function getSettingsTabIcon(tab: SettingsTab) {
     case "computer":
     case "devices":
       return Monitor;
+    case "unclereach":
+      return Link2;
     case "updates":
       return RefreshCcw;
     case "recovery":
@@ -149,6 +152,8 @@ export function getSettingsTabLabel(tab: SettingsTab) {
       return "Computer use";
     case "devices":
       return "Devices";
+    case "unclereach":
+      return "UncleReach";
     case "updates":
       return t("settings.tab_updates");
     case "recovery":
@@ -200,6 +205,8 @@ export function getSettingsTabDescription(tab: SettingsTab) {
       return "Let the agent use apps on this computer";
     case "devices":
       return "Your desktops and cloud computers";
+    case "unclereach":
+      return "Pair this Mac with UncleReach to send LinkedIn and WhatsApp touches";
     case "updates":
       return t("settings.tab_description_updates");
     case "recovery":
@@ -281,7 +288,7 @@ export function useSettingsNavGroups(developerMode: boolean): SettingsNavGroups 
     hub: allowed(["general"]),
     workspace: allowed(getWorkspaceSettingsTabs()),
     global: allowed(getGlobalSettingsTabs(developerMode, platform.capabilities, { desktop: isElectronRuntime() })),
-    cloud: allowed([...CLOUD_SETTINGS_TABS, "devices"]),
+    cloud: allowed([...CLOUD_SETTINGS_TABS, "devices", "unclereach"]),
   };
 }
 

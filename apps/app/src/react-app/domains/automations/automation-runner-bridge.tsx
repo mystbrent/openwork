@@ -19,6 +19,14 @@ import { COMPUTER_DISCONNECTED_ERROR } from "@openwork/types/den/remote-devices"
 import { createDenClient, DenApiError, isDenSessionRevokedError, readDenSettings } from "@/app/lib/den"
 import { denSettingsChangedEvent } from "@/app/lib/den-session-events"
 import { observeDesktopAutomationLifecycle } from "@/app/lib/analytics"
+import {
+  loadUncleReachConfig,
+  markUncleReachRejected,
+  refreshUncleReachToken,
+  saveUncleReachConfig,
+  UncleReachError,
+  uncleReachConfigChangedEvent,
+} from "@/react-app/kernel/unclereach"
 import { isDesktopRuntime } from "@/app/utils"
 import { useDenAuth } from "@/react-app/domains/cloud/den-auth-provider"
 import { useEnterpriseActivationRequired } from "@/react-app/domains/cloud/enterprise-activation-gate"
@@ -53,6 +61,29 @@ function ActivatedAutomationRunnerBridge() {
       refreshMs: RUNNER_TOKEN_REFRESH_MS,
       disconnectedRetryMs: RUNNER_DISCONNECTED_RETRY_MS,
       connect: async (isCurrent) => {
+        const uncleReach = loadUncleReachConfig()
+        if (uncleReach) {
+          try {
+            const token = await refreshUncleReachToken(uncleReach)
+            if (!isCurrent()) return
+            saveUncleReachConfig({ ...uncleReach, token }, { notify: false })
+            await window.__OPENWORK_ELECTRON__?.invokeDesktop?.("automationRunnerConfigure", {
+              baseUrl: uncleReach.baseUrl,
+              token,
+              runnerId: uncleReach.runnerId,
+            })
+          } catch (error) {
+            if (!isCurrent()) throw error
+            if (error instanceof UncleReachError && error.status === 401) {
+              markUncleReachRejected()
+              await disconnect()
+              return
+            }
+            console.warn("[automation-runner] UncleReach refresh failed", error)
+            throw error
+          }
+          return
+        }
         if (status !== "signed_in") {
           await disconnect()
           return
@@ -173,6 +204,7 @@ function ActivatedAutomationRunnerBridge() {
     const handleSettingsChanged = () => { if (!thisComputerStillDisconnected()) requestConnect() }
     window.addEventListener(denSettingsChangedEvent, handleSettingsChanged)
     window.addEventListener("online", handleSettingsChanged)
+    window.addEventListener(uncleReachConfigChangedEvent, requestConnect)
     const unsubscribeCredentialRejected = window.__OPENWORK_ELECTRON__.automationRunner
       ?.onCredentialRejected?.((rejection) => {
         if (rejection?.reason !== COMPUTER_DISCONNECTED_ERROR) {
@@ -193,6 +225,7 @@ function ActivatedAutomationRunnerBridge() {
       unsubscribeRunLifecycle?.()
       window.removeEventListener(denSettingsChangedEvent, handleSettingsChanged)
       window.removeEventListener("online", handleSettingsChanged)
+      window.removeEventListener(uncleReachConfigChangedEvent, requestConnect)
       void disconnect()
     }
   }, [deploymentEnabled, refresh, status])

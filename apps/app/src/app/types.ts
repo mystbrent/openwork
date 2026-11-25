@@ -188,6 +188,7 @@ export const SETTINGS_TAB_VALUES = [
   "shortcuts",
   "computer",
   "devices",
+  "unclereach",
   "updates",
   "recovery",
   "debug",

@@ -117,6 +117,8 @@ import { AppearanceView } from "@/react-app/domains/settings/pages/appearance-vi
 import { KeyboardShortcutsView } from "@/react-app/domains/settings/pages/keyboard-shortcuts-view";
 import { ComputerUseView } from "@/react-app/domains/settings/pages/computer-use-view";
 import { DevicesView } from "@/react-app/domains/settings/pages/devices-view";
+import { UncleReachView } from "@/react-app/domains/settings/pages/unclereach-view";
+import { desktopRunnerId } from "@/react-app/domains/automations/automation-runner-identity";
 import { CloudAccountView } from "@/react-app/domains/settings/pages/cloud-account-view";
 import {
   connectPluginsForComposer,
@@ -322,6 +324,7 @@ export function parseSettingsPath(pathname: string): {
     case "shortcuts":
     case "computer":
     case "devices":
+    case "unclereach":
     case "environment":
     case "updates":
     case "debug":
@@ -2719,6 +2722,8 @@ function SettingsRouteContent(props: SettingsSurfaceProps = {}) {
         return <ComputerUseView fileSends={openworkClient} />;
       case "devices":
         return <DevicesView />;
+      case "unclereach":
+        return <UncleReachView getRunnerId={desktopRunnerId} />;
       case "updates":
         return (
           <UpdatesView
