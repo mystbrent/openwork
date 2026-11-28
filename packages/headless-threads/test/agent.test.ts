@@ -65,7 +65,7 @@ test("v1: a thread created without an agent sends no agent field", async () => {
   assert.ok(prompt?.body && !("agent" in prompt.body));
 });
 
-test("v1: every turn sent with an agent names it, a turn without one does not", async () => {
+test("v1: every turn sent with an agent names it, since v1 falls back to the default agent per prompt; a turn without one does not", async () => {
   const server = fakeServer({ engine: "v1" });
   await server.client.sendTurn(THREAD, { prompt: "restricted", agent: AGENT });
   await server.client.sendTurn(THREAD, { prompt: "normal" });
@@ -89,7 +89,7 @@ test("v2: a thread created without an agent sends no agent field", async () => {
   assert.ok(created?.body && !("agent" in created.body));
 });
 
-test("v2: a created session that did not bind the requested agent is refused", async () => {
+test("v2: a created session that did not bind the requested agent is refused rather than run unrestricted", async () => {
   const server = fakeServer({ engine: "v2", createdAgent: null });
   await assert.rejects(
     server.client.createThread({ title: "Runner", agent: AGENT, model: MODEL }),

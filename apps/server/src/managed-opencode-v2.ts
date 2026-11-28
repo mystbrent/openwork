@@ -326,7 +326,6 @@ export function renderOpencodeV2Config(input: {
     ...(plugins.length ? { plugins } : {}),
     ...(input.permissions || permissions.length ? { permissions } : {}),
     ...(input.skills.length ? { skills: [...input.skills] } : {}),
-    // Agent-scoped: only sessions that name this agent are restricted.
     agents: { [UNCLEREACH_BROWSER_AGENT]: unclereachBrowserAgentV2Config() },
   };
 }

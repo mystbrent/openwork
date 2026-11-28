@@ -392,8 +392,6 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
     },
     async submit(threadId, prompt, model, messageId, signal, agent) {
       const path = `${opencodePath}/session/${encodeURIComponent(threadId)}/prompt_async`;
-      // V1 picks the agent per prompt and falls back to the default agent, so
-      // a restricted thread must name its agent on every turn.
       const result = await opencode.session.promptAsync({
         sessionID: threadId,
         parts: [{ type: "text", text: prompt }],
@@ -565,7 +563,6 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
         },
         signal,
       });
-      // An engine that ignored the agent would run the session unrestricted.
       if (agent !== undefined && created.data.agent !== agent) {
         throw new HeadlessThreadError({ code: "agent_not_applied", message: `The engine did not bind the session to the ${agent} agent.`,
           method: "POST", path: `${v2Path}/session` });
@@ -581,8 +578,6 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
       return fromV2Session(created.data);
     },
     async submit(threadId, prompt, model, messageId, signal, agent) {
-      // V2 binds the agent to the session, so a turn that names one re-binds a
-      // session that was moved to another agent before it prompts.
       if (agent !== undefined && (await v2Session(threadId, signal)).agent !== agent) {
         const agentPath = `${v2SessionPath(threadId)}/agent`;
         const result = await send("POST", agentPath, { body: { agent }, signal });

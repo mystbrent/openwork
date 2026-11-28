@@ -84,7 +84,6 @@ export function buildOpenworkRuntimeConfigObjectFromSnapshot(
           },
         },
       },
-      // Agent-scoped: only sessions that name this agent are restricted.
       [UNCLEREACH_BROWSER_AGENT]: unclereachBrowserAgentV1Config(),
     },
     plugin: [

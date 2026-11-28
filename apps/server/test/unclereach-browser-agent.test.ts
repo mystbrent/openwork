@@ -4,7 +4,7 @@ import test from "node:test";
 import { renderOpencodeV2Config } from "../src/managed-opencode-v2.js";
 import { server as browserTools } from "../src/opencode-plugins/openwork-chrome-devtools.js";
 import { buildOpenworkRuntimeConfigObjectFromSnapshot } from "../src/openwork-runtime-config.js";
-import { UNCLEREACH_BROWSER_AGENT, UNCLEREACH_BROWSER_TOOLS } from "../src/unclereach-browser-agent.js";
+import { UNCLEREACH_BROWSER_AGENT, UNCLEREACH_BROWSER_TOOLS, unclereachBrowserAgentV2Config } from "../src/unclereach-browser-agent.js";
 
 type Rule = { action: string; resource: string; effect: string };
 
@@ -36,6 +36,12 @@ test("v2: the rendered config defines the agent with deny-all then the browser t
   assert.deepEqual(Object.keys(agents), [UNCLEREACH_BROWSER_AGENT]);
 });
 
+test("browser tools are allowed by exact name, so an MCP server named browser gets no tools in by prefix", () => {
+  for (const tool of UNCLEREACH_BROWSER_TOOLS) assert.ok(!tool.includes("*"));
+  const allowedV2 = unclereachBrowserAgentV2Config().permissions.filter((rule) => rule.effect === "allow").map((rule) => rule.action);
+  assert.deepEqual(allowedV2, [...UNCLEREACH_BROWSER_TOOLS]);
+});
+
 test("v2: the agent is present even in a minimal config, with no global permissions added", () => {
   const rendered = renderOpencodeV2Config({ providers: [], skills: [] });
   assert.ok((rendered.agents as Record<string, unknown>)[UNCLEREACH_BROWSER_AGENT]);
@@ -57,5 +63,5 @@ test("v1: the runtime config defines the agent with deny-all then the browser to
   // The user's default agent and the global permission block are untouched.
   assert.equal(config.default_agent, "openwork");
   assert.ok(!("*" in (config.permission as Record<string, unknown>)));
-  assert.ok(!("*" in agents.openwork!.permission));
+  assert.ok(!("*" in (agents.openwork?.permission ?? {})));
 });
