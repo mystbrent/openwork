@@ -68,6 +68,11 @@ export interface CreateThreadInput {
   metadata?: Record<string, unknown>;
   prompt?: string;
   model?: HeadlessThreadModel;
+  /**
+   * The engine agent the thread runs as. Sent only when given; the engine
+   * otherwise uses the workspace default agent.
+   */
+  agent?: string;
   signal?: AbortSignal;
 }
 
@@ -85,6 +90,8 @@ export interface HeadlessThread {
 export interface HeadlessThreadTurnInput {
   prompt: string;
   model?: HeadlessThreadModel;
+  /** The engine agent this turn runs as. Sent only when given. */
+  agent?: string;
   messageId?: string;
   signal?: AbortSignal;
 }
