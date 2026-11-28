@@ -45,6 +45,7 @@ export const v2SessionSchema = data(
       location: z.object({ directory: z.string().optional() }).passthrough().optional(),
       time: z.object({ created: z.number().optional() }).passthrough().optional(),
       model: modelRefSchema.optional(),
+      agent: z.string().optional(),
     })
     .passthrough(),
 );

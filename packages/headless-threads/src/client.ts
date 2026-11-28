@@ -345,8 +345,9 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
     engine: HeadlessThreadEngine;
     createPath: string;
     createSession(title: string, model: HeadlessThreadModel | null, signal?: AbortSignal,
-      identity?: Pick<CreateThreadInput, "id" | "metadata">): Promise<SessionWire>;
-    submit(threadId: string, prompt: string, model: HeadlessThreadModel | null, messageId: string | undefined, signal?: AbortSignal): Promise<void>;
+      identity?: Pick<CreateThreadInput, "id" | "metadata">, agent?: string): Promise<SessionWire>;
+    submit(threadId: string, prompt: string, model: HeadlessThreadModel | null, messageId: string | undefined, signal?: AbortSignal,
+      agent?: string): Promise<void>;
     messages(threadId: string, signal?: AbortSignal): Promise<MessageWire[]>;
     snapshot(threadId: string, input?: { signal?: AbortSignal; limit?: number }): Promise<HeadlessThreadSnapshot>;
     abort(threadId: string, signal?: AbortSignal): Promise<boolean>;
@@ -381,20 +382,21 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
   const v1: Transport = {
     engine: "v1",
     createPath: `${opencodePath}/session`,
-    async createSession(title, _model, signal) {
+    async createSession(title, _model, signal, _identity, agent) {
       return sdkJson(
         sessionSchema,
-        await opencode.session.create({ title }, { signal: requestSignal(signal) }),
+        await opencode.session.create({ title, ...(agent === undefined ? {} : { agent }) }, { signal: requestSignal(signal) }),
         "POST",
         `${opencodePath}/session`,
       );
     },
-    async submit(threadId, prompt, model, messageId, signal) {
+    async submit(threadId, prompt, model, messageId, signal, agent) {
       const path = `${opencodePath}/session/${encodeURIComponent(threadId)}/prompt_async`;
       const result = await opencode.session.promptAsync({
         sessionID: threadId,
         parts: [{ type: "text", text: prompt }],
         ...(messageId === undefined ? {} : { messageID: messageId }),
+        ...(agent === undefined ? {} : { agent }),
         ...(model === null ? {} : { model: { providerID: model.providerId, modelID: model.modelId } }),
         ...(model?.variant ? { variant: model.variant } : {}),
       }, { signal: requestSignal(signal) });
@@ -550,16 +552,21 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
   const v2: Transport = {
     engine: "v2",
     createPath: `${v2Path}/session`,
-    async createSession(title, model, signal, identity) {
+    async createSession(title, model, signal, identity, agent) {
       const created = await json(v2SessionSchema, "POST", `${v2Path}/session`, {
         body: {
           title,
           ...(identity?.id === undefined ? {} : { id: identity.id }),
           ...(identity?.metadata === undefined ? {} : { metadata: identity.metadata }),
+          ...(agent === undefined ? {} : { agent }),
           ...(model === null ? {} : { model: { providerID: model.providerId, id: model.modelId } }),
         },
         signal,
       });
+      if (agent !== undefined && created.data.agent !== agent) {
+        throw new HeadlessThreadError({ code: "agent_not_applied", message: `The engine did not bind the session to the ${agent} agent.`,
+          method: "POST", path: `${v2Path}/session` });
+      }
       const expectedMetadata = identity?.metadata;
       const matchesMetadata = expectedMetadata === undefined || Object.entries(expectedMetadata).every(([key, value]) => (
         JSON.stringify(canonicalJson(created.data.metadata?.[key])) === JSON.stringify(canonicalJson(value))
@@ -570,7 +577,12 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
       }
       return fromV2Session(created.data);
     },
-    async submit(threadId, prompt, model, messageId, signal) {
+    async submit(threadId, prompt, model, messageId, signal, agent) {
+      if (agent !== undefined && (await v2Session(threadId, signal)).agent !== agent) {
+        const agentPath = `${v2SessionPath(threadId)}/agent`;
+        const result = await send("POST", agentPath, { body: { agent }, signal });
+        if (!result.response.ok) throw failure("POST", agentPath, result);
+      }
       if (model !== null) {
         const modelPath = `${v2SessionPath(threadId)}/model`;
         const result = await send("POST", modelPath, {
@@ -706,10 +718,10 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
     }
     if (model === null && engine.engine === "v2") modelRequired("POST", engine.createPath);
     await requireAvailableModel(engine, model, input.signal);
-    const session = await engine.createSession(title, model, input.signal, { id: input.id, metadata: input.metadata });
+    const session = await engine.createSession(title, model, input.signal, { id: input.id, metadata: input.metadata }, input.agent);
     if (prompt !== undefined) {
       try {
-        await engine.submit(session.id, prompt, model, undefined, input.signal);
+        await engine.submit(session.id, prompt, model, undefined, input.signal, input.agent);
       } catch (error) {
         const contextualError = error instanceof Error ? error : new Error(String(error));
         Object.defineProperties(contextualError, {
@@ -755,7 +767,7 @@ export function createHeadlessThreadClient(options: HeadlessThreadClientOptions)
       ? await unspecifiedTurnModel(engine, threadId, messages, input.signal)
       : { send: named, check: named };
     await requireAvailableModel(engine, model.check, input.signal);
-    await engine.submit(threadId, input.prompt, model.send, input.messageId, input.signal);
+    await engine.submit(threadId, input.prompt, model.send, input.messageId, input.signal, input.agent);
     return {
       threadId,
       acceptedAt: now(),

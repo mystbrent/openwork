@@ -68,6 +68,7 @@ export interface CreateThreadInput {
   metadata?: Record<string, unknown>;
   prompt?: string;
   model?: HeadlessThreadModel;
+  agent?: string;
   signal?: AbortSignal;
 }
 
@@ -85,6 +86,7 @@ export interface HeadlessThread {
 export interface HeadlessThreadTurnInput {
   prompt: string;
   model?: HeadlessThreadModel;
+  agent?: string;
   messageId?: string;
   signal?: AbortSignal;
 }

@@ -14,6 +14,17 @@ import {
   resolveAssignmentWorkspace,
 } from "./automation-runner.mjs"
 
+/**
+ * The engine agent every session this runner creates or prompts runs as. The
+ * local server defines it (apps/server/src/unclereach-browser-agent.ts) for
+ * both engines with the built-in browser tools only, scoped to this agent so
+ * the person's own chats and Automations keep their default agent. Naming it
+ * on create and on every turn matters: V1 picks the agent per prompt and
+ * would otherwise fall back to the default agent, and an engine that does not
+ * know it refuses the turn instead of running unrestricted.
+ */
+export const UNCLEREACH_RUNNER_AGENT = "unclereach-browser"
+
 const NATIVE_OPERATION_TIMEOUT_MS = 15_000
 /** The bounded tail each progress observation reads. */
 const OBSERVE_MESSAGE_LIMIT = 200
@@ -218,6 +229,7 @@ export function createDesktopSessionAdapter(options) {
         created = await client.createThread({
           title: command.title,
           ...identity,
+          agent: UNCLEREACH_RUNNER_AGENT,
           ...(command.model ? { model: modelInput(command.model) } : {}),
           signal: operationSignal,
         })
@@ -265,6 +277,7 @@ export function createDesktopSessionAdapter(options) {
           accepted = await native.client.sendTurn(receipt.sessionId, {
             prompt: input.prompt,
             messageId: input.messageId,
+            agent: UNCLEREACH_RUNNER_AGENT,
             ...(input.model ? { model: modelInput(input.model) } : {}),
             signal: operationSignal,
           })

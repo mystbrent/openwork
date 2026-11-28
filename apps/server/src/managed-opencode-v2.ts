@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { appendEngineOutputTail, createEngineStartupLineReader } from "./engine-output.js";
 import { resolveOpencodeHistoryDatabase } from "./opencode-history.js";
 import { providerCredentialBrokerSource } from "./opencode-v2-provider-channel.js";
+import { UNCLEREACH_BROWSER_AGENT, unclereachBrowserAgentV2Config } from "./unclereach-browser-agent.js";
 
 export { installOpencodeV2Binary } from "./opencode-v2-binary.js";
 
@@ -325,6 +326,7 @@ export function renderOpencodeV2Config(input: {
     ...(plugins.length ? { plugins } : {}),
     ...(input.permissions || permissions.length ? { permissions } : {}),
     ...(input.skills.length ? { skills: [...input.skills] } : {}),
+    agents: { [UNCLEREACH_BROWSER_AGENT]: unclereachBrowserAgentV2Config() },
   };
 }
 

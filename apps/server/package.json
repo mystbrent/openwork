@@ -21,6 +21,7 @@
     "test:drive-upload-duration": "node --conditions=development --import tsx --test test/drive-upload-duration.test.ts",
     "test:drive-upload-session-native": "node --conditions=development --import tsx --test test/drive-upload-session-approval-native.test.ts",
     "test:live-provider-sync": "bun test test/live-provider-sync.test.ts",
+    "test:unclereach-browser-agent": "node --conditions=development --import tsx --test test/unclereach-browser-agent.test.ts",
     "prepublishOnly": "pnpm build:npm-bundle"
   },
   "files": [
